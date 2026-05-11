@@ -5,7 +5,7 @@ import { getRequestUser } from '../auth.js';
 const router = Router();
 function norm(s) { return String(s || '').toLowerCase(); }
 
-const BDC_NAME_RE = /^bdc-connect-/i;
+const BDC_NAME_RE = /bdc.*connect|connect.*bdc/i;
 
 router.get('/', async (req, res, next) => {
   try {
@@ -20,7 +20,7 @@ router.get('/', async (req, res, next) => {
       return res.json({
         recipients: [],
         counts: { total: all.length, bdc: 0 },
-        note: all.length ? 'No BDC Connect recipients (bdc-connect-*) visible.' : 'No recipients visible.',
+        note: all.length ? 'No BDC Connect recipients that you have access to are visible.' : 'No recipients visible.',
       });
     }
 
