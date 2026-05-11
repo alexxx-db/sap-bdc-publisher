@@ -226,7 +226,7 @@
         <div id="tile-recipient-loading"></div>
         <div class="tile-header">
           <div class="tile-num">3</div>
-          <div><div class="tile-title">Pick a BDC recipient</div><div id="tile-recipient-subtitle" class="tile-subtitle">Only BDC Connect recipients (bdc-connect-*) are shown</div></div>
+          <div><div class="tile-title">Pick a BDC recipient</div><div id="tile-recipient-subtitle" class="tile-subtitle">Only BDC Connect recipients you have access to are shown</div></div>
         </div>
         <select id="recipient-select" disabled><option>Pick a share first</option></select>
         <div id="recipient-message"></div>
@@ -300,7 +300,7 @@ function setMode(mode) {
   el('mode-unpublish').setAttribute('aria-selected', mode === 'unpublish' ? 'true' : 'false');
   el('tile-recipient-subtitle').textContent = mode === 'unpublish'
     ? 'Recipients that already have this share'
-    : 'Only BDC Connect recipients (bdc-connect-*) are shown';
+    : 'Only BDC Connect recipients you have access to are shown';
   el('tile-review-title').textContent = mode === 'unpublish' ? 'Review and delete' : 'Review and publish';
   el('tile-review-subtitle').textContent = mode === 'unpublish'
     ? 'BDC delete_share runs as the app SP on serverless; the REVOKE on the share runs as you'
@@ -460,7 +460,7 @@ async function loadSharesAndRecipients() {
     .then((r) => {
       state.recipients = r.recipients || [];
       if (r.note) setMsg('recipient-message', 'warn', escHtml(r.note));
-      else if (r.counts) setMsg('recipient-message', 'info', 'Showing ' + r.counts.bdc + ' of ' + r.counts.total + ' recipients (bdc-connect-*).');
+      else if (r.counts) setMsg('recipient-message', 'info', 'Showing ' + r.counts.bdc + ' of ' + r.counts.total + ' BDC Connect recipients you have access to.');
     })
     .catch((e) => {
       setMsg('recipient-message', 'err', 'Failed to list recipients: ' + escHtml(e.message));
