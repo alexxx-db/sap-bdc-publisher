@@ -6,10 +6,6 @@ variables:
     description: "Solution accelerator name"
     default: "sap-bdc-publisher"
 
-  warehouse_id:
-    lookup:
-      warehouse: "Shared Unity Catalog Serverless"
-
   environment:
     description: "Deployment environment (dev, staging, prod)"
     default: "dev"

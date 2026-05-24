@@ -15,21 +15,28 @@ guided UI.
 
 ### Option A — Install from Databricks Marketplace (recommended)
 
+One click. The install wizard provisions and deploys the app for you.
+
 1. Open **Marketplace** in your Databricks workspace.
 2. Find **SAP BDC Publisher** → click **Install**.
 3. In the in-workspace install wizard:
    - Name the app and pick the workspace folder to deploy into.
-   - **Pick a SQL warehouse** from the dropdown. This warehouse is
-     auto-granted `CAN_USE` to the app's service principal, which
-     bootstraps the in-app warehouse dropdown.
+   - **Pick a SQL warehouse** from the dropdown. The wizard auto-grants
+     it `CAN_USE` to the app's service principal and binds its ID into
+     the app's runtime env (`DATABRICKS_WAREHOUSE_ID`), so the in-app
+     warehouse dropdown is pre-selected to your pick.
    - Approve the requested OAuth scopes (`sql`, `iam.current-user:read`,
      `iam.access-control:read`).
-4. Click **Install**. Deployment takes ~30–120 seconds.
+4. Click **Install**. Deployment takes ~30–120 seconds. No follow-up
+   action required.
 5. Open the **app URL** from the wizard's success screen. The Activity
    tab launches a one-time setup sub-wizard on first visit (provisions or
    adopts a Delta table for the audit log; takes ~10 seconds).
 
 ### Option B — Asset Bundle deploy (for development / customization)
+
+For contributors iterating on the app source. End users should use
+Option A.
 
 1. **Clone this project into your Databricks Workspace** (Workspace →
    Clone from GitHub → paste this repo URL).
@@ -40,9 +47,9 @@ guided UI.
      already set — no manual scope grant needed).
    - The `bdc_publish` and `bdc_unpublish` notebooks at
      `<bundle-files>/notebooks/`, which the app calls at runtime.
-4. **Grant the app SP `CAN_USE` on at least one SQL warehouse.** The DAB
-   path doesn't bind a warehouse to the app — users pick one from the
-   in-app dropdown at runtime, so the dropdown needs to be non-empty:
+4. **Grant the app SP `CAN_USE` on at least one SQL warehouse** so the
+   in-app dropdown is non-empty. The DAB path doesn't bind a warehouse
+   to the app (Marketplace install does — see Option A):
 
    ```bash
    databricks warehouses set-permissions <warehouse-id> \
@@ -50,7 +57,6 @@ guided UI.
        {"service_principal_name":"<bdc-sharing-sp-client-id>","permission_level":"CAN_USE"}
      ]}'
    ```
-   (The Marketplace install path in Option A does this automatically.)
 5. **Open the App URL** and start publishing.
 
 ---
