@@ -43,17 +43,3 @@ resources:
           spec:
             client: "2"
             dependencies: []
-
-    demo_workflow:
-      name: "${var.project_name} - SDK smoke test"
-      tasks:
-        - task_key: smoke
-          notebook_task:
-            notebook_path: "./notebooks/00_smoke.py"
-          environment_key: bdc_env
-      environments:
-        - environment_key: bdc_env
-          spec:
-            client: "2"
-            dependencies:
-              - sap-bdc-connect-sdk
