@@ -38,8 +38,10 @@ into your workspace and deploy via the Asset Bundle Editor.
    app compute and calls the Apps Deploy API with the source path the
    bundle uploaded. Takes ~2 minutes. The app reaches **RUNNING**.
 
-5. **Grant the app SP `CAN_USE` on at least one SQL warehouse** so the
-   in-app warehouse dropdown is non-empty:
+5. **(If the in-app warehouse dropdown is empty)** grant the app SP
+   `CAN_USE` on a SQL warehouse. Workspaces where the `users` group
+   has warehouse access skip this — the SP inherits `CAN_USE`
+   automatically. Stricter workspaces need an admin to run:
 
    ```bash
    databricks warehouses set-permissions <warehouse-id> \
