@@ -25,23 +25,18 @@ into your workspace and deploy via the Asset Bundle Editor.
 2. **Open the Asset Bundle Editor** on the cloned `databricks.yml` (the
    UI auto-detects it).
 
-3. **Click "Deploy"**. The bundle provisions:
-   - The `bdc-sharing` Databricks App (with the `sql` user-API scope
-     already set — no manual scope grant needed) and uploads the app
-     source under `./apps/bdc-sharing/` to a bundle-managed workspace
-     path.
-   - The `bdc_publish` and `bdc_unpublish` notebooks at
-     `<bundle-files>/notebooks/`, which the app calls at runtime.
+3. **Click "Deploy"** in the Asset Bundle Editor. This uploads the app
+   source under `./apps/bdc-sharing/` to a bundle-managed workspace
+   path, registers the `bdc-sharing` Databricks App resource (with the
+   `sql` user-API scope already set), and stages the
+   `bdc_publish` / `bdc_unpublish` notebooks the app calls at runtime.
+   The app itself comes up **UNAVAILABLE** at this point — bundle
+   deploy does not bind source to the app on its own.
 
-4. **Start the app**. The bundle deploy registers the App and binds
-   its source, but does not start it on compute (this is documented
-   DAB behavior). Open the App's page in the Databricks Apps UI and
-   click **Deploy**. Wait for the state to reach **Running**.
-
-   CLI alternative:
-   ```bash
-   databricks apps deploy bdc-sharing
-   ```
+4. **Run the `deploy_bdc_sharing_app` job** from the Asset Bundle UI's
+   Runs tab (🚀 icon → click **Run** next to the job). This starts the
+   app compute and calls the Apps Deploy API with the source path the
+   bundle uploaded. Takes ~2 minutes. The app reaches **RUNNING**.
 
 5. **Grant the app SP `CAN_USE` on at least one SQL warehouse** so the
    in-app warehouse dropdown is non-empty:

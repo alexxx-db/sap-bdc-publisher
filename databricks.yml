@@ -1,5 +1,6 @@
 bundle:
   name: sap_bdc_publisher
+  engine: terraform
 
 variables:
   project_name:
@@ -14,6 +15,8 @@ targets:
   dev:
     default: true
     mode: development
+    presets:
+      source_linked_deployment: false
 
 resources:
   apps:
@@ -25,16 +28,18 @@ resources:
         - sql
 
   jobs:
-    demo_workflow:
-      name: "${var.project_name} - SDK smoke test"
+    deploy_bdc_sharing_app:
+      name: "${var.project_name} - Deploy bdc-sharing app source"
       tasks:
-        - task_key: smoke
+        - task_key: deploy
           notebook_task:
-            notebook_path: "./notebooks/00_smoke.py"
+            notebook_path: "./notebooks/deploy_app.py"
+            base_parameters:
+              app_name: "bdc-sharing"
+              source_code_path: "${workspace.file_path}/apps/bdc-sharing"
           environment_key: bdc_env
       environments:
         - environment_key: bdc_env
           spec:
             client: "2"
-            dependencies:
-              - sap-bdc-connect-sdk
+            dependencies: []
