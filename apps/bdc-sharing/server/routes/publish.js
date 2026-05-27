@@ -15,14 +15,10 @@ async function resolveNotebookPath() {
   const override = process.env.BDC_NOTEBOOK_PATH;
   if (override) return override;
   const appName = process.env.DATABRICKS_APP_NAME || 'data-sharing';
+  // Notebooks ship inside the app source (apps/bdc-sharing/notebooks/) so
+  // they're part of the deployment artifact snapshot and the SP always has
+  // read access — no sibling-directory permission concerns.
   const base = await getAppDeploymentPath(appName);
-  // DAB layout: app at <bundle-files>/apps/<name>/, notebooks at
-  // <bundle-files>/notebooks/. Strip the trailing /apps/<name> segment to
-  // reach the bundle files root.
-  const dab = base.match(/^(.*)\/apps\/[^/]+$/);
-  if (dab) return `${dab[1]}/notebooks/bdc_publish`;
-  // Standalone deploy (`databricks apps deploy` against a synced source
-  // path that already contains /notebooks/).
   return `${base}/notebooks/bdc_publish`;
 }
 
