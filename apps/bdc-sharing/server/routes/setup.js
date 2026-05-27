@@ -69,11 +69,10 @@ router.get('/activity-status', async (req, res, next) => {
 });
 
 // GET /api/setup/catalogs?warehouseId=...
-// Lists catalogs visible to the user, with hasManage flagged per-catalog so
-// the wizard can disable rows the user can't grant on. We probe MANAGE by
-// running SHOW GRANTS ON CATALOG <c> as the user — the statement requires
-// MANAGE / OWNER, so success === has-MANAGE. Probes run in parallel to keep
-// total latency low even with a dozen catalogs.
+// Lists catalogs visible to the user on this warehouse. We do not pre-check
+// MANAGE — the SHOW GRANTS probe we used to run was unreliable (false negatives
+// for users who do have MANAGE), so we let the actual provisioning DDL surface
+// permission errors directly instead.
 router.get('/catalogs', async (req, res, next) => {
   try {
     requireRequestUser(req);
@@ -89,16 +88,7 @@ router.get('/catalogs', async (req, res, next) => {
       // Hide catalogs no one provisions schemas in.
       .filter((n) => n !== 'system' && n !== '__databricks_internal' && n !== 'samples');
 
-    const probes = await Promise.all(names.map(async (name) => {
-      try {
-        await sqlQuery(req, warehouseId, `SHOW GRANTS ON CATALOG ${idQ(name)}`);
-        return { name, hasManage: true };
-      } catch (_e) {
-        return { name, hasManage: false };
-      }
-    }));
-
-    res.json({ catalogs: probes });
+    res.json({ catalogs: names.map((name) => ({ name })) });
   } catch (err) { next(err); }
 });
 

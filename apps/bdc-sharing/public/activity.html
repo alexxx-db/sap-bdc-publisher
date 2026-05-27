@@ -320,25 +320,20 @@ async function renderWizard() {
     return;
   }
 
-  const manageable = catalogs.filter((c) => c.hasManage);
-  const provisionLocked = manageable.length === 0;
-
   // Render the card. Two sub-sections: provision form (top) and adopt-existing (bottom).
   body.innerHTML =
     '<div class="wizard" id="wizard-card">' +
       '<h2>Set up activity logging</h2>' +
       '<p class="lead">The activity log records every publish and delete attempt and powers the "Published ✓" markers in the share picker. Pick how to enable it.</p>' +
 
-      '<div class="wizard-section' + (provisionLocked ? ' locked' : '') + '" id="wz-provision-section">' +
+      '<div class="wizard-section" id="wz-provision-section">' +
         '<div class="wizard-section-head">' +
           '<h3>Provision a new table</h3>' +
-          (provisionLocked
-            ? '<span class="locked-badge">Needs MANAGE on a catalog</span>'
-            : '<span class="muted">Recommended</span>') +
+          '<span class="muted">Recommended</span>' +
         '</div>' +
         '<p class="muted small">' +
           'The wizard runs DDL as you and grants the app service principal <code>USE CATALOG</code>, <code>USE SCHEMA</code>, <code>SELECT</code>, and <code>MODIFY</code> on the new table. ' +
-          'Issuing those grants requires <code>MANAGE</code> (or ownership) on the catalog — only catalogs where you currently have that are selectable.' +
+          'Issuing those grants requires <code>MANAGE</code> (or ownership) on the catalog. If you do not have it, the GRANT step will fail and we will show you the error.' +
         '</p>' +
         renderProvisionForm(catalogs) +
         '<div id="wz-steps" class="steps" style="display:none"></div>' +
@@ -347,7 +342,7 @@ async function renderWizard() {
       '<div class="wizard-section">' +
         '<div class="wizard-section-head">' +
           '<h3>Adopt an existing table</h3>' +
-          (provisionLocked ? '<span class="muted">Recommended</span>' : '<span class="muted">Optional</span>') +
+          '<span class="muted">Optional</span>' +
         '</div>' +
         '<p class="muted small">' +
           'If a catalog admin has already provisioned an activity table for this app, enter its 3-part name. The wizard verifies that the app service principal can read and write to it before saving.' +
@@ -358,8 +353,7 @@ async function renderWizard() {
 
     '</div>';
 
-  // Wire up provision form (only if a manageable catalog exists).
-  if (!provisionLocked) {
+  if (catalogs.length) {
     const refreshSql = () => {
       const c = el('wz-catalog').value;
       const s = el('wz-schema').value.trim();
@@ -379,30 +373,25 @@ function renderProvisionForm(catalogs) {
   if (!catalogs.length) {
     return '<div class="muted small">No Unity Catalogs are visible to you on this warehouse. Ask a workspace admin to grant you access.</div>';
   }
-  const opts = catalogs.map((c) => {
-    const label = c.hasManage ? c.name : c.name + ' [needs MANAGE]';
-    const tooltip = c.hasManage ? '' : ' title="You don\'t have MANAGE on this catalog. Granting USE CATALOG to the app SP requires MANAGE."';
-    return '<option value="' + escHtml(c.name) + '"' + (c.hasManage ? '' : ' disabled') + tooltip + '>' + escHtml(label) + '</option>';
-  }).join('');
-  const hasAnyManage = catalogs.some((c) => c.hasManage);
+  const opts = catalogs.map((c) =>
+    '<option value="' + escHtml(c.name) + '">' + escHtml(c.name) + '</option>'
+  ).join('');
   return (
     '<div class="field">' +
-      '<label for="wz-catalog">Catalog<span class="hint">' +
-        (hasAnyManage ? 'only catalogs you have MANAGE on are selectable' : 'no MANAGE-eligible catalogs found') +
-      '</span></label>' +
-      '<select id="wz-catalog" class="full"' + (hasAnyManage ? '' : ' disabled') + '>' + opts + '</select>' +
+      '<label for="wz-catalog">Catalog<span class="hint">all catalogs visible to you on this warehouse</span></label>' +
+      '<select id="wz-catalog" class="full">' + opts + '</select>' +
     '</div>' +
     '<div class="field">' +
       '<label for="wz-schema">Schema</label>' +
-      '<input id="wz-schema" type="text" value="bdc_sharing"' + (hasAnyManage ? '' : ' disabled') + ' />' +
+      '<input id="wz-schema" type="text" value="bdc_sharing" />' +
     '</div>' +
     '<div class="field">' +
       '<label for="wz-table">Table</label>' +
-      '<input id="wz-table" type="text" value="activity"' + (hasAnyManage ? '' : ' disabled') + ' />' +
+      '<input id="wz-table" type="text" value="activity" />' +
     '</div>' +
     '<details class="sql-preview"><summary>Show the SQL that will run</summary><pre class="sql" id="wz-sql"></pre></details>' +
     '<div class="actions">' +
-      '<button id="wz-go" type="button" class="btn-primary"' + (hasAnyManage ? '' : ' disabled') + '>Provision and enable</button>' +
+      '<button id="wz-go" type="button" class="btn-primary">Provision and enable</button>' +
       '<span id="wz-msg" class="muted"></span>' +
     '</div>'
   );

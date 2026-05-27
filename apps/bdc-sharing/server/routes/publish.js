@@ -18,11 +18,10 @@ async function resolveNotebookPath() {
   const base = await getAppDeploymentPath(appName);
   // DAB layout: app at <bundle-files>/apps/<name>/, notebooks at
   // <bundle-files>/notebooks/. Strip the trailing /apps/<name> segment to
-  // reach the bundle files root.
+  // reach the bundle files root. The deploy job grants the app SP CAN_READ
+  // on the notebooks directory after bundle deploy.
   const dab = base.match(/^(.*)\/apps\/[^/]+$/);
   if (dab) return `${dab[1]}/notebooks/bdc_publish`;
-  // Standalone deploy (`databricks apps deploy` against a synced source
-  // path that already contains /notebooks/).
   return `${base}/notebooks/bdc_publish`;
 }
 

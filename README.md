@@ -120,7 +120,7 @@ views.
 ├── notebooks/
 │   ├── bdc_publish.py       # Invoked by the app at runtime
 │   ├── bdc_unpublish.py     # Invoked by the app at runtime
-│   └── 00_smoke.py          # CI-only smoke test
+│   └── deploy_app.py        # Bundle-deploy job: binds app source + grants SP read
 ├── databricks.yml           # Asset Bundle (apps + smoke job)
 ├── requirements.txt         # Python deps for the notebooks
 └── env.example              # App env vars (sourced from app.yaml at deploy)
