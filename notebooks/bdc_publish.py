@@ -118,6 +118,9 @@ else:
 
 # COMMAND ----------
 
+# Rebuild the client before each call: the SDK caches one pyOpenSSL
+# Context, and pyOpenSSL forbids mutating a Context after first use.
+bdc_connect_client = BdcConnectClient(DatabricksClient(dbutils, recipient_name))
 bdc_connect_client.create_or_update_share_csn(share_name, csn_schema)
 print("Step 2c OK: CSN schema upserted")
 
@@ -128,6 +131,7 @@ print("Step 2c OK: CSN schema upserted")
 
 # COMMAND ----------
 
+bdc_connect_client = BdcConnectClient(DatabricksClient(dbutils, recipient_name))
 bdc_connect_client.publish_data_product(share_name)
 print("Step 3 OK: data product published")
 
