@@ -116,10 +116,11 @@ views.
 │   ├── app.yaml             # Apps runtime config (command, env, scopes)
 │   ├── package.json         # Express + npm
 │   ├── public/              # Static UI (HTML/CSS/vanilla JS)
-│   ├── server/              # Express backend (routes/, dbx.js, auth.js, …)
-│   └── notebooks/           # bdc_publish / bdc_unpublish (invoked at runtime)
+│   └── server/              # Express backend (routes/, dbx.js, auth.js, …)
 ├── notebooks/
-│   └── deploy_app.py        # Bundle-deploy job: binds app source post-deploy
+│   ├── bdc_publish.py       # Invoked by the app at runtime
+│   ├── bdc_unpublish.py     # Invoked by the app at runtime
+│   └── deploy_app.py        # Bundle-deploy job: binds app source + grants SP read
 ├── databricks.yml           # Asset Bundle (apps + smoke job)
 ├── requirements.txt         # Python deps for the notebooks
 └── env.example              # App env vars (sourced from app.yaml at deploy)

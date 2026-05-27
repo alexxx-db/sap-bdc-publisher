@@ -350,7 +350,14 @@ export function getJobRunOutput(runId) {
 
 export async function getAppDeploymentPath(appName) {
   const body = await spGet(`/api/2.0/apps/${encodeURIComponent(appName)}`);
-  const path = body?.active_deployment?.deployment_artifacts?.source_code_path;
+  // Prefer the deploy-time `source_code_path` (e.g. `${workspace.file_path}/apps/<name>`)
+  // over `deployment_artifacts.source_code_path` (the immutable Files-API snapshot
+  // under `/Workspace/Users/<sp>/src/<hash>/`). The artifact snapshot only contains
+  // the app subtree and stores `.py` files as plain workspace files — not registered
+  // notebook objects — so resolving the publish/unpublish notebooks off it fails.
+  const path =
+    body?.active_deployment?.source_code_path ||
+    body?.active_deployment?.deployment_artifacts?.source_code_path;
   if (!path) {
     const err = new Error(`App ${appName} has no active deployment source_code_path`);
     err.status = 500; err.code = 'no_deployment_path';

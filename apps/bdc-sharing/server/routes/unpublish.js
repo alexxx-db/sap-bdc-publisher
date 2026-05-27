@@ -16,6 +16,8 @@ async function resolveNotebookPath() {
   if (override) return override;
   const appName = process.env.DATABRICKS_APP_NAME || 'data-sharing';
   const base = await getAppDeploymentPath(appName);
+  const dab = base.match(/^(.*)\/apps\/[^/]+$/);
+  if (dab) return `${dab[1]}/notebooks/bdc_unpublish`;
   return `${base}/notebooks/bdc_unpublish`;
 }
 
