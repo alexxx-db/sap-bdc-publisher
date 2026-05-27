@@ -27,6 +27,17 @@ if app.compute_status is None or app.compute_status.state != ComputeState.ACTIVE
 else:
     print("Compute already ACTIVE")
 
+# Ship README.md inside the app source so the in-app docs page can render
+# it. The bundle syncs the project-root README to the bundle root, but the
+# Apps snapshot only includes source_code_path, so copy it in first.
+import shutil
+bundle_root = source_code_path.rsplit("/apps/", 1)[0]
+try:
+    shutil.copy(f"{bundle_root}/README.md", f"{source_code_path}/README.md")
+    print(f"Copied README.md into {source_code_path}")
+except FileNotFoundError:
+    print(f"Note: {bundle_root}/README.md not found, skipping README copy")
+
 print(f"Deploying app '{app_name}' from {source_code_path}")
 deployment = w.apps.deploy_and_wait(
     app_name=app_name,
