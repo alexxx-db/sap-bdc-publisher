@@ -348,8 +348,8 @@ el('mode-unpublish').onclick = () => setMode('unpublish');
     const w = await api('GET', '/api/warehouses');
     const sel = el('wh-select');
     if (!w.warehouses.length) {
-      sel.innerHTML = '<option>No warehouses visible to the app SP</option>';
-      setMsg('wh-message', 'err', 'The app service principal cannot see any SQL warehouses. Grant it CAN_USE on a warehouse.');
+      sel.innerHTML = '<option>No warehouses visible to you</option>';
+      setMsg('wh-message', 'err', 'You do not have CAN_USE on any SQL warehouse. Ask a workspace admin to grant you access, then refresh.');
       return;
     }
     const savedId = localStorage.getItem(WH_KEY);
