@@ -45,12 +45,13 @@ function userGet(req, urlPath) { return fetchWithToken(getUserToken(req), urlPat
 function userPost(req, urlPath, body) { return fetchWithToken(getUserToken(req), urlPath, { method: 'POST', body: JSON.stringify(body || {}) }); }
 
 // -----------------------------------------------------------------------------
-// SQL Warehouses — all warehouse ops use the SP so the list the user sees
-// matches what the SP can actually start on their behalf.
+// SQL Warehouses. List runs under user OBO so the picker reflects what the
+// caller can see; start and poll stay on the SP because the SP is what
+// actually starts the warehouse on the user's behalf.
 // -----------------------------------------------------------------------------
 
-export async function listWarehouses() {
-  const body = await spGet('/api/2.0/sql/warehouses');
+export async function listWarehouses(req) {
+  const body = await userGet(req, '/api/2.0/sql/warehouses');
   return body.warehouses || [];
 }
 
