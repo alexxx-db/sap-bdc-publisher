@@ -26,6 +26,7 @@ resources:
       source_code_path: "./apps/bdc-sharing"
       user_api_scopes:
         - sql
+        - iam.current-user:read
 
   jobs:
     deploy_bdc_sharing_app:
