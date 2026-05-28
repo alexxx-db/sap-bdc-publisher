@@ -29,9 +29,21 @@ function spHomeDir() {
   return `/Workspace/Users/${cid}/bdc-publisher`;
 }
 
+async function readSource(name) {
+  // The Apps platform strips the .py extension when materializing notebook
+  // .py files into the source snapshot. Try the stripped form first (what
+  // we'll actually see at runtime), fall back to the .py form (local dev or
+  // platforms that preserve the extension).
+  for (const candidate of [path.join(SRC_DIR, name), path.join(SRC_DIR, `${name}.py`)]) {
+    try { return await fs.readFile(candidate); } catch (e) { if (e.code !== 'ENOENT') throw e; }
+  }
+  const err = new Error(`Notebook source ${name} not found under ${SRC_DIR}`);
+  err.status = 500; err.code = 'notebook_source_missing';
+  throw err;
+}
+
 async function importOne(name, dir) {
-  const local = path.join(SRC_DIR, `${name}.py`);
-  const buf = await fs.readFile(local);
+  const buf = await readSource(name);
   const target = `${dir}/${name}`;
   await workspaceImportNotebookSp({
     path: target,
