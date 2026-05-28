@@ -8,9 +8,9 @@ import {
   getTablePrimaryKey,
 } from '../dbx.js';
 import { getRequestUser } from '../auth.js';
-import { getPublishStateMap } from '../activity.js';
 
 const router = Router();
+const BDC_RECIPIENT_RE = /^bdc-connect-/i;
 function norm(s) { return String(s || '').toLowerCase(); }
 
 router.get('/', async (req, res, next) => {
@@ -25,25 +25,19 @@ router.get('/', async (req, res, next) => {
       return res.json({ shares: [], note: 'No shares visible to you.' });
     }
 
-    // BDC-publish state: source of truth is the activity log, not SHOW GRANTS.
-    // A SELECT grant on a `bdc-connect-*` recipient is necessary but NOT
-    // sufficient — it could exist because the user manually added the
-    // recipient to the share without ever calling publish_data_product.
-    // When the activity log isn't configured we deliberately leave the
-    // dropdown unmarked rather than guessing wrong.
-    let publishMap = null;
-    try {
-      publishMap = await getPublishStateMap({ warehouseId });
-    } catch (e) {
-      // best effort: read failure shouldn't break the share listing
-      console.error('[shares] activity-log lookup failed', e.message);
-    }
-
+    // BDC-publish state is read straight from SHOW GRANTS ON SHARE: any
+    // bdc-connect-* recipient with SELECT is treated as published. This is
+    // the same signal /api/diag uses and the same condition the unpublish
+    // flow REVOKEs, so the dropdown can never disagree with UC reality.
+    // Trade-off: a manually-added GRANT (no real BDC publish) would also
+    // show up here; that's a fair fallback compared to needing the
+    // activity log fully wired before delete works.
     const results = await Promise.all(shares.map(async (s) => {
       const isCreator = norm(s.created_by) === userEmail;
       let isOwner = isCreator;
       let owner = s.created_by;
       const userGrants = [];
+      const publishedRecipients = [];
       try {
         const grants = await showGrantsOnShare(req, warehouseId, s.name);
         for (const g of grants) {
@@ -52,6 +46,9 @@ router.get('/', async (req, res, next) => {
           const priv = String(g.privilege || g.action_type || g.ActionType || '').toUpperCase();
           if (!principal || !priv) continue;
           if (norm(principal) === userEmail) userGrants.push(priv);
+          if (priv === 'SELECT' && BDC_RECIPIENT_RE.test(principal)) {
+            publishedRecipients.push(principal);
+          }
         }
       } catch { /* best effort */ }
       try {
@@ -60,23 +57,11 @@ router.get('/', async (req, res, next) => {
         if (d0.owner) { owner = d0.owner; isOwner = norm(d0.owner) === userEmail; }
       } catch { /* best effort */ }
       const accessible = isOwner || userGrants.length > 0;
-      // Published-recipient set is driven entirely by the activity log, so
-      // it works for any recipient name (not just `bdc-connect-*`).
-      const publishedRecipients = [];
-      if (publishMap) {
-        const prefix = s.name + '\x00';
-        for (const [key, eventType] of publishMap) {
-          if (!key.startsWith(prefix)) continue;
-          if (eventType !== 'publish_job_succeeded') continue;
-          publishedRecipients.push(key.slice(prefix.length));
-        }
-      }
       return {
         share: { ...s, owner },
         accessible, isOwner, userGrants,
         publishedToBdc: publishedRecipients.length > 0,
         publishedRecipients,
-        publishStateKnown: publishMap !== null,
       };
     }));
 
@@ -88,7 +73,6 @@ router.get('/', async (req, res, next) => {
         comment: r.share.comment, isOwner: r.isOwner, userGrants: r.userGrants,
         publishedToBdc: r.publishedToBdc,
         publishedRecipients: r.publishedRecipients,
-        publishStateKnown: r.publishStateKnown,
       })),
       counts: { total: shares.length, accessible: accessible.length },
     });
