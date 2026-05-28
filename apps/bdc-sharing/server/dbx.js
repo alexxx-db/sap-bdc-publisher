@@ -366,3 +366,25 @@ export async function getAppDeploymentPath(appName) {
   }
   return path;
 }
+
+// -----------------------------------------------------------------------------
+// Workspace import. Used at runtime to materialize the publish/unpublish
+// notebooks under the SP's home so notebook_task can reference them. The Apps
+// artifact snapshot stores .py files as plain workspace files, not registered
+// notebook objects, so we re-import via the workspace API which converts
+// SOURCE+language into a real notebook object.
+// -----------------------------------------------------------------------------
+
+export function workspaceMkdirsSp(p) {
+  return spPost('/api/2.0/workspace/mkdirs', { path: p });
+}
+
+export function workspaceImportNotebookSp({ path: p, contentBase64, language = 'PYTHON' }) {
+  return spPost('/api/2.0/workspace/import', {
+    path: p,
+    format: 'SOURCE',
+    language,
+    overwrite: true,
+    content: contentBase64,
+  });
+}

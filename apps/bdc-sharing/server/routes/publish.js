@@ -3,9 +3,9 @@ import {
   submitBdcPublishJob,
   getJobRun,
   getJobRunOutput,
-  getAppDeploymentPath,
   grantSelectOnShare,
 } from '../dbx.js';
+import { ensureNotebooks } from '../notebooks.js';
 import { requireRequestUser, getRequestUser } from '../auth.js';
 import { writeActivityEvent, shouldLogTerminalOnce } from '../activity.js';
 
@@ -14,21 +14,8 @@ const router = Router();
 async function resolveNotebookPath() {
   const override = process.env.BDC_NOTEBOOK_PATH;
   if (override) return override;
-  const appName = process.env.DATABRICKS_APP_NAME || 'bdc-sharing';
-  const base = await getAppDeploymentPath(appName);
-  // DAB layout: app at <bundle-files>/apps/<name>/, notebooks at
-  // <bundle-files>/notebooks/. Strip the trailing /apps/<name> segment to
-  // reach the bundle files root. The deploy job grants the app SP CAN_READ
-  // on the notebooks directory after bundle deploy.
-  const dab = base.match(/^(.*)\/apps\/[^/]+$/);
-  if (dab) return `${dab[1]}/notebooks/bdc_publish`;
-  const err = new Error(
-    `Cannot resolve publish notebook path: app source ${base} does not match the ` +
-    `DAB layout <root>/apps/<name>. Set BDC_NOTEBOOK_PATH explicitly for non-DAB installs.`
-  );
-  err.status = 500;
-  err.code = 'notebook_path_unresolvable';
-  throw err;
+  const { bdc_publish: p } = await ensureNotebooks();
+  return p;
 }
 
 router.post('/', async (req, res, next) => {
