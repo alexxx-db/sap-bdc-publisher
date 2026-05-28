@@ -74,7 +74,6 @@
       <a href="/" title="Back to app">← Back to app</a>
       <a href="/activity.html" title="Open activity log">Activity</a>
       <a href="/docs.html" title="Open documentation" target="_blank">Documentation</a>
-      <a href="/logout" title="Sign out">Sign out</a>
       <div id="user-badge" class="user-badge"></div>
     </div>
   </header>
@@ -92,7 +91,8 @@
           <p>The app uses <strong>two identities</strong> simultaneously — there is no single "as the user" or "as the SP".</p>
           <ul>
             <li><strong>You (via OBO token)</strong> — every read on Unity Catalog (<code>SHOW SHARES</code>, <code>SHOW RECIPIENTS</code>, <code>DESCRIBE</code>, <code>SHOW GRANTS</code>, <code>DESCRIBE TABLE</code>, information_schema PK lookup) and the privilege mutations on the share itself: <code>GRANT SELECT ON SHARE</code> (publish) and <code>REVOKE SELECT ON SHARE</code> (delete <code>/finalize</code>). UC enforces your ownership / ALTER privilege when these run.</li>
-            <li><strong>App service principal</strong> — listing / starting SQL warehouses, submitting and polling the BDC publish/delete Job, reading the app's own deployment path. The Job itself runs <em>as the SP</em>: it only calls the BDC SDK, which doesn't depend on user identity.</li>
+            <li><strong>You (via OBO token)</strong> also list the SQL warehouses you have <code>CAN_USE</code> on, so the picker reflects your access rather than the SP's.</li>
+            <li><strong>App service principal</strong> — starting and polling SQL warehouses on your behalf, submitting and polling the BDC publish/delete Job, reading the app's own deployment path. The Job itself runs <em>as the SP</em>: it only calls the BDC SDK, which doesn't depend on user identity.</li>
           </ul>
           <p>The audit trail stays coherent: <code>system.access.audit</code> shows GRANT/REVOKE attributed to you, the BDC SDK calls attributed to the SP. The Activity tab merges both views.</p>
         </div>

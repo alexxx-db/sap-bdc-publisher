@@ -72,10 +72,10 @@ router.get('/', async (req, res) => {
 
   let warehouseId;
   try {
-    const whs = await listWarehouses();
+    const whs = await listWarehouses(req);
     warehouseId = (whs.find((w) => w.enable_serverless_compute) || whs[0])?.id;
     out.checks.push({
-      check: 'List warehouses (SP) — no SQL; REST /api/2.0/sql/warehouses',
+      check: 'List warehouses (user OBO) — no SQL; REST /api/2.0/sql/warehouses',
       ok: true, count: whs.length,
       sample: whs.slice(0, 5).map((w) => ({
         id: w.id, name: w.name, size: w.cluster_size, state: w.state, serverless: !!w.enable_serverless_compute,

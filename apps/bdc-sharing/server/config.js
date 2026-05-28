@@ -26,6 +26,27 @@ const cache = {
   spWorkspacePath: null,
 };
 
+// Same allowlist as routes/setup.js validName, applied per-part. Reject any
+// BDC_ACTIVITY_TABLE that doesn't parse as a 3-part UC name so the raw value
+// never reaches the INSERT/SELECT/DELETE statements in activity.js.
+const ENV_NAME_RE = /^[A-Za-z0-9_][A-Za-z0-9_-]{0,127}$/;
+function validateEnvTable(raw) {
+  const trimmed = raw.trim();
+  const parts = trimmed.split('.');
+  if (parts.length !== 3 || !parts.every((p) => ENV_NAME_RE.test(p))) {
+    throw new Error(
+      `BDC_ACTIVITY_TABLE must be a 3-part UC name <catalog>.<schema>.<table> ` +
+      `(letters, digits, underscores, hyphens). Got: ${raw}`
+    );
+  }
+  return trimmed;
+}
+
+{
+  const raw = process.env.BDC_ACTIVITY_TABLE;
+  if (raw && raw.trim()) validateEnvTable(raw); // throws on bad shape at boot
+}
+
 function envTable() {
   const v = process.env.BDC_ACTIVITY_TABLE;
   return v && v.trim() ? v.trim() : null;

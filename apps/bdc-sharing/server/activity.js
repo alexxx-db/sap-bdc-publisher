@@ -72,7 +72,10 @@ export async function writeActivityEvent(event) {
 // absent if no terminal event has ever fired for the pair. Used by the share
 // dropdown to mark BDC-published recipients accurately — the SELECT grant
 // alone is not a reliable signal (see routes/shares.js notes).
-export async function getPublishStateMap(req, { warehouseId }) {
+//
+// Runs as the SP so the share listing doesn't depend on the optional
+// "GRANT SELECT TO `account users`" step of the activity wizard.
+export async function getPublishStateMap({ warehouseId }) {
   const table = await getActivityTable();
   if (!table) return null;
   const stmt =
@@ -82,7 +85,7 @@ export async function getPublishStateMap(req, { warehouseId }) {
     `FROM ${table} ` +
     `WHERE event_type IN ('publish_job_succeeded', 'delete_finalized')) ` +
     `WHERE rn = 1`;
-  const result = await executeStatement(req, { statement: stmt, warehouseId });
+  const result = await spExecuteStatement({ statement: stmt, warehouseId });
   const rows = result.result?.data_array || [];
   const map = new Map();
   for (const r of rows) {

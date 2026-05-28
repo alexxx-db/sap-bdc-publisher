@@ -33,7 +33,7 @@ router.get('/', async (req, res, next) => {
     // dropdown unmarked rather than guessing wrong.
     let publishMap = null;
     try {
-      publishMap = await getPublishStateMap(req, { warehouseId });
+      publishMap = await getPublishStateMap({ warehouseId });
     } catch (e) {
       // best effort: read failure shouldn't break the share listing
       console.error('[shares] activity-log lookup failed', e.message);
@@ -44,7 +44,6 @@ router.get('/', async (req, res, next) => {
       let isOwner = isCreator;
       let owner = s.created_by;
       const userGrants = [];
-      const grantedBdcRecipients = new Set(); // SELECT grants on bdc-connect-* — informational only
       try {
         const grants = await showGrantsOnShare(req, warehouseId, s.name);
         for (const g of grants) {
@@ -53,7 +52,6 @@ router.get('/', async (req, res, next) => {
           const priv = String(g.privilege || g.action_type || g.ActionType || '').toUpperCase();
           if (!principal || !priv) continue;
           if (norm(principal) === userEmail) userGrants.push(priv);
-          if (/^bdc-connect-/i.test(principal) && priv === 'SELECT') grantedBdcRecipients.add(principal);
         }
       } catch { /* best effort */ }
       try {
@@ -62,12 +60,15 @@ router.get('/', async (req, res, next) => {
         if (d0.owner) { owner = d0.owner; isOwner = norm(d0.owner) === userEmail; }
       } catch { /* best effort */ }
       const accessible = isOwner || userGrants.length > 0;
-      // Filter the granted recipients down to those whose latest activity
-      // event is publish_job_succeeded.
+      // Published-recipient set is driven entirely by the activity log, so
+      // it works for any recipient name (not just `bdc-connect-*`).
       const publishedRecipients = [];
       if (publishMap) {
-        for (const r of grantedBdcRecipients) {
-          if (publishMap.get(s.name + '\x00' + r) === 'publish_job_succeeded') publishedRecipients.push(r);
+        const prefix = s.name + '\x00';
+        for (const [key, eventType] of publishMap) {
+          if (!key.startsWith(prefix)) continue;
+          if (eventType !== 'publish_job_succeeded') continue;
+          publishedRecipients.push(key.slice(prefix.length));
         }
       }
       return {

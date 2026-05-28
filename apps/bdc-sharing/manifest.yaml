@@ -1,0 +1,5 @@
+version: 1
+name: "sap-bdc-publisher"
+description: "Publish Unity Catalog shares to SAP Business Data Cloud."
+user_api_scopes:
+  - "sql"

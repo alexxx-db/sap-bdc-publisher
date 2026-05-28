@@ -142,7 +142,6 @@
       <a href="/" title="Back to app">← Back to app</a>
       <a href="/faq.html" title="Open FAQ">FAQ</a>
       <a href="/docs.html" title="Open documentation" target="_blank">Documentation</a>
-      <a href="/logout" title="Sign out">Sign out</a>
       <div id="user-badge" class="user-badge"></div>
     </div>
   </header>
@@ -612,7 +611,7 @@ async function switchWarehouse(id) {
     const w = await api('GET', '/api/warehouses');
     if (!w.warehouses || !w.warehouses.length) {
       el('wh-select').innerHTML = '<option>No warehouses available</option>';
-      el('activity-body').innerHTML = '<div class="err-box">No SQL warehouses are visible to the app. Grant the app SP CAN_USE on a warehouse.</div>';
+      el('activity-body').innerHTML = '<div class="err-box">You do not have CAN_USE on any SQL warehouse. Ask a workspace admin to grant you access, then refresh.</div>';
       return;
     }
     const savedId = localStorage.getItem(WH_KEY);

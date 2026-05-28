@@ -3,10 +3,10 @@ import { listWarehouses, getWarehouse, kickWarehouseStart, rankWarehouses } from
 
 const router = Router();
 
-// GET /api/warehouses — SP list (matches what the SP can start on your behalf).
-router.get('/', async (_req, res, next) => {
+// GET /api/warehouses. User OBO list, reflects warehouses the caller can see.
+router.get('/', async (req, res, next) => {
   try {
-    const whs = await listWarehouses();
+    const whs = await listWarehouses(req);
     const ranked = rankWarehouses(whs);
     res.json({
       warehouses: ranked.map((w) => ({
