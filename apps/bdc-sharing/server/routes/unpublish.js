@@ -14,11 +14,17 @@ const router = Router();
 async function resolveNotebookPath() {
   const override = process.env.BDC_UNPUBLISH_NOTEBOOK_PATH;
   if (override) return override;
-  const appName = process.env.DATABRICKS_APP_NAME || 'data-sharing';
+  const appName = process.env.DATABRICKS_APP_NAME || 'bdc-sharing';
   const base = await getAppDeploymentPath(appName);
   const dab = base.match(/^(.*)\/apps\/[^/]+$/);
   if (dab) return `${dab[1]}/notebooks/bdc_unpublish`;
-  return `${base}/notebooks/bdc_unpublish`;
+  const err = new Error(
+    `Cannot resolve unpublish notebook path: app source ${base} does not match the ` +
+    `DAB layout <root>/apps/<name>. Set BDC_UNPUBLISH_NOTEBOOK_PATH explicitly for non-DAB installs.`
+  );
+  err.status = 500;
+  err.code = 'notebook_path_unresolvable';
+  throw err;
 }
 
 router.post('/', async (req, res, next) => {
