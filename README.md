@@ -49,18 +49,18 @@ deploy.
    path, registers the `bdc-sharing` Databricks App resource (with the
    `sql` user-API scope already set), and stages the
    `bdc_publish` / `bdc_unpublish` notebooks the app calls at runtime.
-   The app itself comes up **UNAVAILABLE** at this point: bundle
+   The app itself comes up **UNAVAILABLE** at this point — bundle
    deploy does not bind source to the app on its own.
 
 4. **Run the `deploy_bdc_sharing_app` job** from the Asset Bundle UI's
-   Runs tab (🚀 icon, click **Run** next to the job). This starts the
+   Runs tab (🚀 icon → click **Run** next to the job). This starts the
    app compute and calls the Apps Deploy API with the source path the
    bundle uploaded. Takes ~2 minutes. The app reaches **RUNNING**.
 
-5. **(If the in-app warehouse dropdown is empty)** the warehouse list
-   is OBO-driven, so the picker reflects warehouses **you** have
-   `CAN_USE` on. If you have access but the SP needs to start the
-   warehouse on your behalf and lacks `CAN_USE`, an admin can grant it:
+5. **(If the in-app warehouse dropdown is empty)** grant the app SP
+   `CAN_USE` on a SQL warehouse. Workspaces where the `users` group
+   has warehouse access skip this — the SP inherits `CAN_USE`
+   automatically. Stricter workspaces need an admin to run:
 
    ```bash
    databricks warehouses set-permissions <warehouse-id> \
