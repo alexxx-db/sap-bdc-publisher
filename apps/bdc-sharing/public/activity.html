@@ -306,6 +306,7 @@ async function renderWizard() {
     return;
   }
   let catalogs = [];
+  let rawCount = 0;
   let spClientId = null;
   try {
     const [c, s] = await Promise.all([
@@ -313,6 +314,7 @@ async function renderWizard() {
       api('GET', '/api/setup/activity-status'),
     ]);
     catalogs = c.catalogs || [];
+    rawCount = typeof c.rawCount === 'number' ? c.rawCount : catalogs.length;
     spClientId = s.spClientId || null;
   } catch (e) {
     body.innerHTML = '<div class="err-box"><strong>Could not load setup state:</strong> ' + escHtml(e.message) + '</div>';
@@ -334,7 +336,7 @@ async function renderWizard() {
           'The wizard runs DDL as you and grants the app service principal <code>USE CATALOG</code>, <code>USE SCHEMA</code>, <code>SELECT</code>, and <code>MODIFY</code> on the new table. ' +
           'Issuing those grants requires <code>MANAGE</code> (or ownership) on the catalog. If you do not have it, the GRANT step will fail and we will show you the error.' +
         '</p>' +
-        renderProvisionForm(catalogs) +
+        renderProvisionForm(catalogs, rawCount) +
         '<div id="wz-steps" class="steps" style="display:none"></div>' +
       '</div>' +
 
@@ -368,9 +370,12 @@ async function renderWizard() {
   el('wz-adopt-go').onclick = runAdopt;
 }
 
-function renderProvisionForm(catalogs) {
+function renderProvisionForm(catalogs, rawCount) {
   if (!catalogs.length) {
-    return '<div class="muted small">No Unity Catalogs are visible to you on this warehouse. Ask a workspace admin to grant you access.</div>';
+    const detail = rawCount === 0
+      ? 'SHOW CATALOGS returned no rows for your OBO identity on this warehouse. Ask a workspace admin to grant you USE CATALOG on at least one Unity Catalog.'
+      : 'SHOW CATALOGS only returned built-in catalogs (system, samples, __databricks_internal) which the wizard hides. Ask a workspace admin to grant you USE CATALOG on a user-provisioned catalog.';
+    return '<div class="muted small">' + detail + '</div>';
   }
   const opts = catalogs.map((c) =>
     '<option value="' + escHtml(c.name) + '">' + escHtml(c.name) + '</option>'
