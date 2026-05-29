@@ -42,6 +42,11 @@
   .header-actions { display: flex; align-items: center; gap: 16px; }
   .header-actions a { color: var(--text-muted); font-size: 13px; font-weight: 500; transition: color 0.15s; }
   .header-actions a:hover { color: var(--text); text-decoration: none; }
+  .header-actions a.nav-highlight { color: var(--accent); background: var(--accent-soft); border: 1px solid var(--accent-dim); padding: 5px 12px; border-radius: 999px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s; }
+  .header-actions a.nav-highlight::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 0 rgba(255,54,33,0.45); animation: nav-pulse 2.2s ease-in-out infinite; }
+  .header-actions a.nav-highlight:hover { color: white; background: var(--accent); border-color: var(--accent); box-shadow: 0 2px 6px rgba(255,54,33,0.25); }
+  .header-actions a.nav-highlight:hover::before { background: white; box-shadow: none; animation: none; }
+  @keyframes nav-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,54,33,0.45); } 50% { box-shadow: 0 0 0 6px rgba(255,54,33,0); } }
 
   .main { max-width: 1200px; margin: 0 auto; padding: 48px 40px 80px; width: 100%; }
   .welcome h1 { font-size: 36px; font-weight: 700; margin: 0 0 12px; letter-spacing: -0.028em; color: var(--text); }
@@ -185,7 +190,7 @@
       <div><div class="brand-name">Data Sharing <span class="brand-sub">Databricks → SAP BDC</span></div></div>
     </div>
     <div class="header-actions">
-      <a href="/activity.html" title="Open activity log">Activity</a>
+      <a href="/activity.html" class="nav-highlight" title="Open activity log">Activity</a>
       <a href="/faq.html" title="Open FAQ">FAQ</a>
       <a href="/docs.html" title="Open documentation" target="_blank">Documentation</a>
       <div id="user-badge" class="user-badge"></div>

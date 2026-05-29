@@ -27,27 +27,6 @@ if app.compute_status is None or app.compute_status.state != ComputeState.ACTIVE
 else:
     print("Compute already ACTIVE")
 
-# Ship README.md inside the app source so the in-app docs page can render
-# it. The bundle syncs the project-root README to the bundle root, but the
-# Apps snapshot only includes source_code_path. Write via the workspace
-# API (not shutil/FUSE) so the write is visible to the subsequent
-# apps.deploy_and_wait snapshot on first-deploy workspaces.
-from databricks.sdk.service.workspace import ImportFormat
-bundle_root = source_code_path.rsplit("/apps/", 1)[0]
-src_readme = f"{bundle_root}/README.md"
-try:
-    with open(src_readme, "rb") as f:
-        readme_bytes = f.read()
-    w.workspace.upload(
-        path=f"{source_code_path}/README.md",
-        content=readme_bytes,
-        format=ImportFormat.AUTO,
-        overwrite=True,
-    )
-    print(f"Uploaded README.md to {source_code_path}")
-except FileNotFoundError:
-    print(f"Note: {src_readme} not found, skipping README upload")
-
 print(f"Deploying app '{app_name}' from {source_code_path}")
 deployment = w.apps.deploy_and_wait(
     app_name=app_name,

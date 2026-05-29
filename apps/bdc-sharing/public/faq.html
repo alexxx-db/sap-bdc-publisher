@@ -34,6 +34,11 @@
   .header-actions { display: flex; align-items: center; gap: 16px; }
   .header-actions a { color: var(--text-muted); font-size: 13px; font-weight: 500; transition: color 0.15s; }
   .header-actions a:hover { color: var(--text); text-decoration: none; }
+  .header-actions a.nav-highlight { color: var(--accent); background: var(--accent-soft); border: 1px solid var(--accent-dim); padding: 5px 12px; border-radius: 999px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s; }
+  .header-actions a.nav-highlight::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 0 rgba(255,54,33,0.45); animation: nav-pulse 2.2s ease-in-out infinite; }
+  .header-actions a.nav-highlight:hover { color: white; background: var(--accent); border-color: var(--accent); box-shadow: 0 2px 6px rgba(255,54,33,0.25); }
+  .header-actions a.nav-highlight:hover::before { background: white; box-shadow: none; animation: none; }
+  @keyframes nav-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,54,33,0.45); } 50% { box-shadow: 0 0 0 6px rgba(255,54,33,0); } }
 
   .main { max-width: 880px; margin: 0 auto; padding: 48px 40px 80px; width: 100%; }
   .welcome h1 { font-size: 32px; font-weight: 700; margin: 0 0 12px; letter-spacing: -0.028em; }
@@ -72,7 +77,7 @@
     </div>
     <div class="header-actions">
       <a href="/" title="Back to app">← Back to app</a>
-      <a href="/activity.html" title="Open activity log">Activity</a>
+      <a href="/activity.html" class="nav-highlight" title="Open activity log">Activity</a>
       <a href="/docs.html" title="Open documentation" target="_blank">Documentation</a>
       <div id="user-badge" class="user-badge"></div>
     </div>
@@ -85,6 +90,14 @@
     </section>
 
     <section class="panel">
+      <details>
+        <summary>Which install path should I pick: Marketplace or Asset Bundle?</summary>
+        <div>
+          <p>Pick <strong>Marketplace</strong> (Option A in the README) unless you have a reason not to. One click installs the app, the <code>sql</code> user-authorization scope, and the runtime notebooks. No bundle deploy, no SP grant step, no <code>app.yaml</code> editing.</p>
+          <p>Pick <strong>Asset Bundle</strong> (Option B) if you need to modify the source before deploy: swap the publish notebook, pin a specific <code>BDC_ACTIVITY_TABLE</code>, change Express routes, fork the app from GitHub. The bundle path is the same one the Marketplace install uses under the hood, so anything that works in Option B also works in Option A.</p>
+        </div>
+      </details>
+
       <details>
         <summary>Who runs which step?</summary>
         <div>
@@ -131,10 +144,11 @@ databricks secrets put-acl sap-bdc-connect-sdk &lt;app-sp-client-id&gt; READ</co
       </details>
 
       <details>
-        <summary>Why does my share show as "already published" when I never published?</summary>
+        <summary>Why does my share show as "already published" when I never published through the app?</summary>
         <div>
-          <p>It shouldn't anymore. The previous heuristic flagged any share with a <code>SELECT</code> grant on a <code>bdc-connect-*</code> recipient as "published to BDC", which conflated two separate operations: the Databricks-side <code>GRANT</code> and the BDC-side <code>publish_data_product</code>.</p>
-          <p>Detection now uses the <strong>activity log</strong>: a <code>(share, recipient)</code> pair is "published" iff the latest activity event for the pair is <code>publish_job_succeeded</code>. If you publish via the app, this is always accurate. Manual / pre-activity-log publishes will appear unpublished — re-running the publish is safe (the BDC SDK uses <code>create_or_update_share</code>, idempotent on the share name).</p>
+          <p>The "Published to ✓" markers are driven by <code>SHOW GRANTS ON SHARE</code>: any <code>SELECT</code> grant to a BDC recipient counts as "published to that recipient" in the dropdown. The check runs every time you open the app, so it always reflects current UC state.</p>
+          <p>This does conflate two operations: the Databricks-side <code>GRANT</code> and the BDC-side <code>publish_data_product</code>. A <code>GRANT SELECT</code> issued manually from DBSQL looks identical to a real app publish. The tradeoff is intentional: the alternative (driving markers off the activity log) silently disabled the Delete button for anyone who hadn't run the setup wizard.</p>
+          <p>If the marker is wrong and no BDC catalog entry exists, re-running the publish through the app is safe. The BDC SDK uses <code>create_or_update_share</code>, idempotent on the share name. To remove the marker without going through BDC, run <code>REVOKE SELECT ON SHARE &lt;share&gt; FROM RECIPIENT &lt;recipient&gt;</code> in DBSQL.</p>
         </div>
       </details>
 
@@ -159,9 +173,19 @@ databricks secrets put-acl sap-bdc-connect-sdk &lt;app-sp-client-id&gt; READ</co
       </details>
 
       <details>
+        <summary>Can I publish the same share to more than one BDC recipient?</summary>
+        <div>
+          <p>Yes, one recipient at a time. Pick the share, pick a recipient, publish; then pick the share again and a different recipient. Each <code>(share, recipient)</code> pair gets its own <code>GRANT SELECT</code> row and its own BDC publish, and they don't interfere with each other.</p>
+          <p>The share dropdown reflects progress. A share published to every visible BDC recipient gets a "✓" prefix and is disabled for republish. A share with partial coverage shows "Published to N of M BDC recipients" so you can see which ones still have headroom. Recipients that already have the share appear as disabled rows in the recipient dropdown ("✓ <em>name</em> — already has this share").</p>
+          <p>Delete is recipient-scoped: removing one recipient doesn't touch the others, and the Databricks share itself stays around either way.</p>
+        </div>
+      </details>
+
+      <details>
         <summary>Can I see who published / deleted what?</summary>
         <div>
-          <p>Yes — the Activity tab. Each publish writes 2 rows (<code>publish_submitted</code>, <code>publish_job_succeeded</code>); each delete writes 3 (<code>delete_submitted</code>, <code>delete_job_succeeded</code>, <code>delete_finalized</code>). Failures land as <code>*_grant_failed</code>, <code>*_job_failed</code>, or <code>delete_finalize_failed</code> with the exact error message.</p>
+          <p>Only if you've set up activity logging first. The Activity tab opens onto a setup card on first visit and stays empty until you finish that. See "Do I have to set up the activity log to publish?" below for whether you want to.</p>
+          <p>Once it's running, each publish writes 2 rows (<code>publish_submitted</code>, <code>publish_job_succeeded</code>); each delete writes 3 (<code>delete_submitted</code>, <code>delete_job_succeeded</code>, <code>delete_finalized</code>). Failures land as <code>*_grant_failed</code>, <code>*_job_failed</code>, or <code>delete_finalize_failed</code> with the exact error message.</p>
           <p>Default view: your own events. Members of the group named in <code>BDC_ACTIVITY_ADMIN_GROUP</code> in <code>app.yaml</code> (default: <code>admins</code>) see a "Show all users" toggle that drops the filter. Group membership is resolved via SCIM <code>/Me</code> against your OBO token, so it must be a UC-recognized group your account belongs to.</p>
           <p>Underlying table: chosen at first run via the in-app setup wizard (Activity tab → "Set up activity logging") and persisted to a config file owned by the app SP, or set explicitly via <code>BDC_ACTIVITY_TABLE</code> in <code>app.yaml</code> for scripted deploys. The configured table is shown in the footer of the Activity tab. App SP writes; Admins (account-level) and <code>account users</code> read. You can query it directly from any DBSQL editor.</p>
         </div>
@@ -196,15 +220,23 @@ databricks secrets put-acl sap-bdc-connect-sdk &lt;app-sp-client-id&gt; READ</co
       </details>
 
       <details>
-        <summary>Is the activity log mandatory? Where does it get configured?</summary>
+        <summary>Do I have to set up the activity log to publish?</summary>
         <div>
-          <p>It is enabled by default via a self-service wizard. The first time the Activity tab is opened with no destination configured, the app shows a setup card with two paths:</p>
+          <p>No. Publish and delete work as soon as you have a warehouse and a share. The "Published to ✓" markers in the share dropdown come from <code>SHOW GRANTS ON SHARE</code>, not the activity log, so nothing in the publish or delete flow depends on the log being configured.</p>
+          <p>The Activity tab does open onto a setup card on first visit (that's why the "Activity" link in the header is highlighted). You can ignore it: nothing else in the app prompts you to come back. The tab only becomes useful once a Delta table has been provisioned or adopted. See the next entry for what the wizard does and how to skip it for scripted deploys.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>Where does the activity log get configured?</summary>
+        <div>
+          <p>The first time the Activity tab is opened with no destination configured, the app shows a setup card with two paths:</p>
           <ul>
-            <li><strong>Provision a new table</strong> — pick a catalog where you have <code>MANAGE</code>, leave the schema/table defaults (or override), click <strong>Provision and enable</strong>. The wizard runs DDL as you (OBO) and grants the app SP <code>USE CATALOG</code>, <code>USE SCHEMA</code>, <code>SELECT</code>, and <code>MODIFY</code>. Workspaces without a <code>main</code> catalog are explicitly supported.</li>
-            <li><strong>Adopt an existing table</strong> — if a catalog admin already provisioned an activity table for the app, enter its 3-part name and click <strong>Verify and use</strong>. The wizard probes the table as the app SP (SELECT, INSERT, DELETE on a probe row) and saves the path if the probe passes. No UC privileges are required from you beyond what the SP already holds on that table.</li>
+            <li><strong>Provision a new table</strong>: pick a catalog where you have <code>MANAGE</code>, leave the schema/table defaults (or override), click <strong>Provision and enable</strong>. The wizard runs DDL as you (OBO) and grants the app SP <code>USE CATALOG</code>, <code>USE SCHEMA</code>, <code>SELECT</code>, and <code>MODIFY</code>. Workspaces without a <code>main</code> catalog are explicitly supported.</li>
+            <li><strong>Adopt an existing table</strong>: if a catalog admin already provisioned an activity table for the app, enter its 3-part name and click <strong>Verify and use</strong>. The wizard probes the table as the app SP (SELECT, INSERT, DELETE on a probe row) and saves the path if the probe passes. No UC privileges are required from you beyond what the SP already holds on that table.</li>
           </ul>
-          <p>The wizard never asks you to edit <code>app.yaml</code> or redeploy. Resolution order on every request: <code>BDC_ACTIVITY_TABLE</code> env var (scripted-deploy override) → workspace config file the wizard writes → null (Activity tab opens onto the wizard).</p>
-          <p>To turn the log off entirely, set <code>BDC_ACTIVITY_TABLE</code> to a non-empty placeholder you don't grant the SP on, or delete the wizard's config file at <code>/Workspace/Users/&lt;app-sp&gt;/.bdc-app/config.json</code> and ignore the wizard. With logging effectively off, the published-state detection in the share dropdown becomes silent (no false positives, no published markers either).</p>
+          <p>The wizard never asks you to edit <code>app.yaml</code> or redeploy. Resolution order on every request: <code>BDC_ACTIVITY_TABLE</code> env var (scripted-deploy override) wins, then the workspace config file the wizard writes, then the wizard prompt.</p>
+          <p>For scripted deploys that should never show the wizard: set <code>BDC_ACTIVITY_TABLE</code> in <code>app.yaml</code> to a 3-part name and pre-grant the SP on the table. The env var pins the destination and the setup card never appears.</p>
         </div>
       </details>
 

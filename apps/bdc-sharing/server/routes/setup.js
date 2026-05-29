@@ -81,14 +81,23 @@ router.get('/catalogs', async (req, res, next) => {
       const err = new Error('warehouseId is required');
       err.status = 400; throw err;
     }
-    const rows = await sqlQuery(req, warehouseId, 'SHOW CATALOGS').catch(() => []);
-    const names = rows
-      .map((r) => r.catalog || r.catalog_name)
-      .filter(Boolean)
-      // Hide catalogs no one provisions schemas in.
-      .filter((n) => n !== 'system' && n !== '__databricks_internal' && n !== 'samples');
+    // SHOW CATALOGS via OBO. Propagate failures so the wizard surfaces a
+    // real error message instead of falsely claiming "no catalogs visible".
+    const rows = await sqlQuery(req, warehouseId, 'SHOW CATALOGS');
+    const allNames = rows
+      .map((r) => r.catalog || r.catalog_name || r.name)
+      .filter(Boolean);
+    const names = allNames.filter(
+      (n) => n !== 'system' && n !== '__databricks_internal' && n !== 'samples',
+    );
 
-    res.json({ catalogs: names.map((name) => ({ name })) });
+    res.json({
+      catalogs: names.map((name) => ({ name })),
+      // Diagnostic: how many catalogs SHOW CATALOGS returned before
+      // filtering. Lets the UI distinguish "OBO sees nothing" from
+      // "OBO sees only built-ins we hide".
+      rawCount: allNames.length,
+    });
   } catch (err) { next(err); }
 });
 
