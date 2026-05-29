@@ -131,19 +131,21 @@ views.
 
 ```
 .
-├── apps/bdc-sharing/        # Databricks App source
+├── apps/bdc-sharing/        # Databricks App source — everything that ships to Marketplace
+│   ├── README.md            # In-app docs, served at /README.md (identical to this file)
 │   ├── app.yaml             # Apps runtime config (command, env, scopes)
 │   ├── manifest.yaml        # Databricks Marketplace listing manifest
 │   ├── package.json         # Express + npm
-│   ├── public/              # Static UI (HTML/CSS/vanilla JS)
-│   └── server/              # Express backend (routes/, dbx.js, auth.js, …)
+│   ├── notebooks/
+│   │   ├── bdc_publish.py   # Submitted by the publish route at runtime
+│   │   └── bdc_unpublish.py # Submitted by the delete route at runtime
+│   ├── public/              # Static UI (index.html, activity.html, docs.html, faq.html)
+│   └── server/              # Express backend (routes/, dbx.js, auth.js, notebooks.js, …)
 ├── notebooks/
-│   ├── bdc_publish.py       # Invoked by the app at runtime
-│   ├── bdc_unpublish.py     # Invoked by the app at runtime
-│   └── deploy_app.py        # Bundle-deploy job: binds app source + grants SP read
-├── databricks.yml           # Asset Bundle (apps + smoke job)
-├── requirements.txt         # Python deps for the notebooks
-└── env.example              # App env vars (sourced from app.yaml at deploy)
+│   └── deploy_app.py        # DAB-only deploy job: binds app source + grants SP read (Option B)
+├── databricks.yml           # Asset Bundle definition (Option B install path)
+├── requirements.txt         # Python deps for the runtime notebooks
+└── env.example              # App env vars (mirrored from app.yaml for local reference)
 ```
 
 ---
