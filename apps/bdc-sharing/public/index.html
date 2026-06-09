@@ -560,8 +560,8 @@ function renderRecipientOptions() {
     bdc.forEach(r => {
       const taken = alreadyPublished.has(r.name);
       const prefix = taken ? '✓ ' : '';
-      const suffix = taken ? ' — already has this share' : '';
-      const attrs = (taken ? ' disabled title="This share is already published to ' + escHtml(r.name) + '"' : '');
+      const suffix = taken ? ' — already on share, will (re)publish to BDC' : '';
+      const attrs = (taken ? ' title="Recipient already has the SELECT grant; publishing will (re)create the data product in BDC"' : '');
       opts.push('<option value="' + escHtml(r.name) + '"' + attrs + '>' + prefix + escHtml(r.name) + suffix + '</option>');
     });
     opts.push('</optgroup>');
@@ -715,19 +715,24 @@ function renderReview() {
   // Primary key picker (optional — publish proceeds with or without).
   const pkHtml = renderPrimaryKeySection();
 
-  // Safety net: if the chosen (share, recipient) pair already exists in the
-  // grants, block publish — the Share dropdown lists this as "published to X".
+  // The chosen (share, recipient) pair may already hold the SELECT grant. That
+  // grant is only half of a publish; the BDC SDK job still has to run to make
+  // the data product live. So we allow re-publishing: the GRANT is idempotent
+  // (no-op when already granted) and the job (re)creates the product in BDC.
   const currentShare = state.shares.find((s) => s.name === state.selectedShare);
   const alreadyPublishedHere = !!(currentShare && (currentShare.publishedRecipients || []).includes(state.selectedRecipient));
   const alreadyPublishedMsg = alreadyPublishedHere
-    ? '<div class="msg warn"><strong>Already published.</strong> Share <code>' + escHtml(state.selectedShare) + '</code> is already granted to <code>' + escHtml(state.selectedRecipient) + '</code>. Pick a different BDC recipient to re-publish.</div>'
+    ? '<div class="msg info"><strong>Recipient already on share.</strong> <code>' + escHtml(state.selectedShare) + '</code> already grants <code>SELECT</code> to <code>' + escHtml(state.selectedRecipient) + '</code>. The grant step is a no-op; the BDC publish job will run to (re)publish the data product.</div>'
     : '';
+
+  // Heads-up that BDC may need a manual sync before the product shows up.
+  const bdcSyncMsg = '<div class="msg info">After publishing, the data product can take a few minutes to appear in SAP BDC. If it doesn\'t show up, trigger a metadata extraction for the BDC Connect connection to sync it.</div>';
 
   const blockedByObjects = analysis && analysis.unsupported.length > 0;
   const blockedByDetail = !detail;
-  const canRun = !blockedByObjects && !blockedByDetail && !alreadyPublishedHere;
+  const canRun = !blockedByObjects && !blockedByDetail;
 
-  body.innerHTML = recHtml + objectsHtml + unsupportedError + grantHtml + spGrantHtml + alreadyPublishedMsg + pkHtml +
+  body.innerHTML = recHtml + objectsHtml + unsupportedError + grantHtml + spGrantHtml + alreadyPublishedMsg + bdcSyncMsg + pkHtml +
     '<div class="metadata-grid">' +
     '<div><label>Data product title</label><input id="md-title" value="' + escHtml(state.selectedShare) + '" /></div>' +
     '<div><label>Short description <span class="required" title="Required">*</span></label>' +
@@ -1171,8 +1176,11 @@ async function pollRun(runId, mode) {
         const successMsg = mode === 'unpublish'
           ? 'Share deleted from BDC.'
           : 'Share published to BDC.';
+        const syncHint = mode === 'unpublish'
+          ? ''
+          : '<div class="msg info">The data product can take a few minutes to appear in SAP BDC. If it doesn\'t show up, trigger a metadata extraction for the BDC Connect connection to sync it.</div>';
         runResult.innerHTML = renderProgress('success', lc, runPageUrl, runId) +
-          '<div class="msg ok"><strong>' + escHtml(successMsg) + '</strong></div>';
+          '<div class="msg ok"><strong>' + escHtml(successMsg) + '</strong></div>' + syncHint;
         el('tile-review').className = 'tile full-width published';
         if (state.selectedShare) {
           // Optimistic update: keep the in-memory publishedRecipients list in
